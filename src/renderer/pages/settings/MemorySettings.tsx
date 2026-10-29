@@ -1,6 +1,7 @@
 import { useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { MemoryDreamingControls } from '@renderer/components/memory/MemoryDreamingControls'
 import { MemoryEditor } from '@renderer/components/memory/MemoryEditor'
 import { SettingsContentColumn } from '@renderer/components/SettingsPrimitives'
 import { useQuery } from '@renderer/data/hooks/useDataApi'
@@ -17,6 +18,10 @@ export function MemorySettings() {
           {agent ? ` · ${agent.name}` : ''}
         </h2>
         <MemoryEditor key={agentId ?? 'shared'} scope={agentId ? { kind: 'private', agentId } : { kind: 'shared' }} />
+        <MemoryDreamingControls
+          key={`dreaming-${agentId ?? 'shared'}`}
+          scope={agentId ? { kind: 'private', agentId } : { kind: 'shared' }}
+        />
       </div>
     </SettingsContentColumn>
   )
