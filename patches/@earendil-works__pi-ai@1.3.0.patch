@@ -118,3 +118,16 @@ index c16391db30af7a73f911c2b47e8af96d37e01fe8..874ff3d474b9747d59cc2a5a17e6afea
  export const MODEL_THINKING_LEVELS = ["off", ...THINKING_LEVELS];
  export const MODEL_INPUT_MODALITIES = ["text", "image"];
  export const CACHE_RETENTIONS = ["none", "short", "long"];
+diff --git a/dist/types.d.ts b/dist/types.d.ts
+index 022faa1969490ca91d67fffa20dab7c41c4384bd..1bf5e6e1bdde065ca292bcd8d5ed7858542eb4d8 100644
+--- a/dist/types.d.ts
++++ b/dist/types.d.ts
+@@ -417,6 +417,8 @@ export type ToolResultMessage<TDetails = JsonValue> = IsJsonCompatible<TDetails>
+     toolName: string;
+     content: (TextContent | ImageContent)[];
+     details?: JsonRepresentation<TDetails>;
++    /** Structured tool output retained for session replay and tool consumers. */
++    structuredContent?: JsonValue;
+     /** Usage from the tool execution itself, if available. Not part of main LLM context accounting. */
+     usage?: Usage;
+     /** Calls this tool made to other tools. Kept for the session record; not sent to the model. */

@@ -1,0 +1,12 @@
+diff --git a/dist/agent-loop.js b/dist/agent-loop.js
+index 77af9601821de97524d2f7dbb33c322b65705d2c..7d1e8a536a180ddcf8c63311ed99155ad74ab9cf 100644
+--- a/dist/agent-loop.js
++++ b/dist/agent-loop.js
+@@ -662,6 +662,7 @@ function createToolResultMessage(finalized) {
+         // so the null never enters session history or provider payloads.
+         content: finalized.result.content ?? [],
+         details: finalized.result.details,
++        ...(finalized.result.structuredContent === undefined ? {} : { structuredContent: finalized.result.structuredContent }),
+         usage: finalized.result.usage,
+         isError: finalized.isError,
+         ...(finalized.durationMs === undefined ? {} : { durationMs: finalized.durationMs }),
