@@ -1,5 +1,5 @@
 diff --git a/dist/entries.d.ts b/dist/entries.d.ts
-index a04297c8aea24e3e499ac1b10ac77aed2bd6678e..35b7f08bee0392c7c30d29ee470f18395c6fedac 100644
+index a04297c8aea24e3e499ac1b10ac77aed2bd6678e..9006dc74422b9f7664fca850e1b336629b1fb144 100644
 --- a/dist/entries.d.ts
 +++ b/dist/entries.d.ts
 @@ -1,12 +1,12 @@
@@ -17,6 +17,57 @@ index a04297c8aea24e3e499ac1b10ac77aed2bd6678e..35b7f08bee0392c7c30d29ee470f1839
  /** Positional prompt and tool change: `model` is `[SystemMessage]` with empty `content`. */
  export declare const SystemEntry: Entry<never>;
  /**
+@@ -27,5 +27,7 @@ export declare const ResetEntry: Entry<never>;
+  */
+ export declare const CompactionEntry: Entry<{
+     reason: CompactionReason;
++    runId?: TaskId;
++    metadata?: JsonValue;
+ }>;
+ //# sourceMappingURL=entries.d.ts.map
+\ No newline at end of file
+diff --git a/dist/harness/compaction.js b/dist/harness/compaction.js
+index c3fb798f4f3fcf13465484b104d40e68cd245b36..188fa0e3a9bc06f75a2173dce4919e92f8d03ffd 100644
+--- a/dist/harness/compaction.js
++++ b/dist/harness/compaction.js
+@@ -86,7 +86,7 @@ export const CompactionTask = defineTask({
+             if (decision !== undefined && "decline" in decision)
+                 return complete(runtime, context);
+             if (decision !== undefined)
+-                return place(runtime, firstKept, decision.summary, context);
++                return place(runtime, firstKept, decision.summary, context, decision.metadata);
+             const request = {
+                 attempt: 1,
+                 model: ref,
+@@ -344,8 +344,8 @@ function truncate(text, maxChars) {
+     return `${text.slice(0, maxChars)}\n\n[... ${text.length - maxChars} more characters truncated]`;
+ }
+ /** Place a summary supplied by a hook in its own commit. */
+-async function place(runtime, firstKept, summary, context) {
+-    await runtime.commit(async (tx, current) => placeSummary(tx, runtime, current, await tx.doc(LiveDoc, runtime.conversationId), firstKept, summary), context);
++async function place(runtime, firstKept, summary, context, metadata) {
++    await runtime.commit(async (tx, current) => placeSummary(tx, runtime, current, await tx.doc(LiveDoc, runtime.conversationId), firstKept, summary, metadata), context);
+ }
+ /**
+  * Place the summary entry and complete (spec §8.7). A blocking compaction, owned by its generation, appends it: the
+@@ -353,7 +353,7 @@ async function place(runtime, firstKept, summary, context) {
+  * idle, otherwise at the next boundary, or settled `stale`.
+  * REMINDER: nothing else may append to a busy conversation, so every non-blocking summary goes through admission.
+  */
+-async function placeSummary(tx, runtime, current, live, firstKept, summary) {
++async function placeSummary(tx, runtime, current, live, firstKept, summary, metadata) {
+     removeCompactionStatus(live, runtime.taskId);
+     delete live.compactionFailure;
+     const text = `${SUMMARY_PREFIX}${summary}${SUMMARY_SUFFIX}`;
+@@ -361,7 +361,7 @@ async function placeSummary(tx, runtime, current, live, firstKept, summary) {
+         kind: CompactionEntry.kind,
+         head: firstKept,
+         model: [{ role: "user", content: [{ type: "text", text }], timestamp: runtime.now() }],
+-        data: { reason: current.input.reason },
++        data: { reason: current.input.reason, ...(live.run && { runId: live.run.id ?? live.run.taskId }), ...(metadata !== undefined && { metadata }) },
+     };
+     const result = current.owner === undefined
+         ? {
 diff --git a/dist/harness/generation.d.ts b/dist/harness/generation.d.ts
 index ccd0557bdafa606dadac6d3a2c264d7664a2f690..3c2019f8f6db9a42e9a1f787776cdbcea3976952 100644
 --- a/dist/harness/generation.d.ts
@@ -105,6 +156,20 @@ index 4694cf9b85989a7b451afe4c652a94b83f5638a2..43d9d5d6853828485b7477964504c1b6
          taskId: TaskId;
          inputs: SubmissionId[];
      };
+diff --git a/dist/harness/types.d.ts b/dist/harness/types.d.ts
+index ea3adc9e21bcc4b101da614ce9913e3858777f0d..b150d3c77fed0358e0adfcf332b812c5f4f270fc 100644
+--- a/dist/harness/types.d.ts
++++ b/dist/harness/types.d.ts
+@@ -735,6 +735,8 @@ export interface CompactionHooks {
+         readonly decline: true;
+     } | {
+         readonly summary: string;
++        /** Opaque host data persisted with the summary entry. */
++        readonly metadata?: JsonValue;
+     }>;
+ }
+ //# sourceMappingURL=types.d.ts.map
+\ No newline at end of file
 diff --git a/dist/session/transaction.d.ts b/dist/session/transaction.d.ts
 index e32932460ce5ef231dc9ee09249266f0e57396e2..4999e2f9feaadea05e8108617af9ca3a73ffe11e 100644
 --- a/dist/session/transaction.d.ts
