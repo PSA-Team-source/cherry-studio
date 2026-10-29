@@ -30,7 +30,7 @@ import {
   createAgentRuntimeSession
 } from '@cherrystudio/agent-runtime-pi'
 import { type InputParamsMap, MessageConverterFactory, StreamAdapterFactory } from '@main/features/apiGateway/adapters'
-import { createUniqueModelId, parseUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
+import { parseUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
 
 import { loadPiApiStreamSimple } from './piSdk'
 
@@ -179,20 +179,7 @@ export async function createTestSession(options: TestSessionOptions) {
     systemPrompt: 'You are Cherry.',
     ...sessionOptions,
     settings: { retry: { enabled: false }, ...sessionOptions.settings },
-    ...binding,
-    subagents: options.subagents && {
-      ...options.subagents,
-      async configure(child) {
-        const configured = await options.subagents!.configure(child)
-        if (!configured.model || child.fork || configured.modelRuntime) return configured
-        const { provider, id, ...spec } = configured.model
-        const childBinding = await createTestBinding({
-          port,
-          model: { ...spec, id: createUniqueModelId(provider, id) }
-        })
-        return { ...configured, ...childBinding }
-      }
-    }
+    ...binding
   })
   onTestFinished(() => runtime.dispose())
   return runtime
