@@ -1,19 +1,22 @@
 # 记忆存储底座
 
-本模块实现 [共享记忆 Spec](../../../../.agents/notes/proposed/feature/2026-10-29-shared-memory.md) 的文件提交、访问权限、编辑和最近操作恢复。运行时和 Dreaming 尚未接入，旧 FACT/JOURNAL 尚未切换。
+本模块实现 [共享记忆 Spec](../../../../.agents/notes/proposed/feature/2026-10-29-shared-memory.md) 的文件提交、访问权限、入口加载、编辑和最近操作恢复。运行时受控文件工具和 Dreaming 尚未接入，旧 FACT/JOURNAL 尚未切换。
 
 - `MemoryStore.ts`：一个作用域由一个实例串行提交。调用方身份使用主进程持有的 `MemoryAccess` 对象，不能从模型或 IPC 输入反序列化。
 - `MemoryService.ts`：生命周期服务。按作用域复用存储实例，绑定调用方凭据，提供暂停、排空和恢复失效入口。
 - `memoryAuthority.ts`：从主进程会话、实体配置和受管理窗口确定权限。每次操作重查数据库，不接受模型提供的身份。
+- `memoryPrompt.ts`：按当前权限读取入口，标明截断和未加载的主题。加载后释放会话，组装引用前再次检查权限。
 - `MemoryEditorService.ts`：把编辑会话绑定到主窗口。窗口关闭后释放会话，其他窗口不能复用凭据。
 - `memoryFiles.ts`：管理文件白名单、真实路径、完整读取、容量检查和文件替换。
 - `memoryBackups.ts`：保存原始字节、预期哈希和逐项结果。备份位于活动目录之外。
 
 服务从路径注册表获取根目录。私有范围检查现有 Agent 目录。`read()` 返回完整正文与调用方绑定的凭据。`entry()` 可能截断，因此不返回编辑凭据。
 
-Agent 的 `configuration.shared_memory_enabled` 缺省为开启。持久助手的 `settings.enableSharedMemory` 缺省为关闭。临时、辅助和普通 headless 助手不开放记忆。渠道 Agent 只能访问所属私有范围。编辑器要求真实的主窗口身份。运行时接入后，必须在轮次结束时释放 `MemorySession`。
+Agent 的 `configuration.shared_memory_enabled` 缺省为开启。持久助手的 `settings.enableSharedMemory` 缺省为关闭。临时、辅助和普通 headless 助手不开放记忆。渠道 Agent 只能访问所属私有范围。编辑器要求真实的主窗口身份。运行时受控文件工具接入后，必须在轮次结束时释放 `MemorySession`。
 
-关闭共享开关后，旧会话凭据不会因重新开启而恢复。实体数据服务只发布权限失效事件，文件操作仍归本模块。完整备份已接入 `pause()` 和 `drainInFlight()`；恢复提交启动日志后调用 `invalidateAll()`，保持暂停直到重启。运行时调用点尚未接入。
+关闭共享开关后，旧会话凭据不会因重新开启而恢复。实体数据服务只发布权限失效事件，文件操作仍归本模块。完整备份已接入 `pause()` 和 `drainInFlight()`；恢复提交启动日志后调用 `invalidateAll()`，保持暂停直到重启。
+
+Pi 在每次模型请求前替换 `cherry_memory` 系统区块，保留其他提示词和工具声明。Claude Code 在 `UserPromptSubmit` 和 `SessionStart` 提供完整引用，空引用撤回先前内容。已发送的上下文不能收回。助手入口仅接受持久聊天 owner 创建的主进程 `memoryContext`，每次 `prepareStep` 重新读取，覆盖压缩后的请求。原生工具写入保护尚未接入，入口引用不代表获得保存能力。
 
 设置页 `/settings/memory` 编辑共享范围。Agent 设置可打开自身私有范围。文件操作使用 `memory.*` IpcApi 路由；实体开关沿用 DataApi。页面以正文和主题切换为主，维护操作收进“更多”菜单。保存冲突保留草稿，清空和恢复先展示文件集与冲突结果。只在操作未完成时显示相关文件，不常驻展示容量、路径和逐文件成功结果，不自动重试写入。
 
