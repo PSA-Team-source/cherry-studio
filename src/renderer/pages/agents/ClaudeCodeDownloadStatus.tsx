@@ -24,7 +24,7 @@ export function ClaudeCodeDownloadStatus({
 }) {
   const { t } = useTranslation()
   const runtime = t('library.config.agent.field.runtime.option.claude_code')
-  const { railGutterPx } = useChatLayoutMode()
+  const { railGutterPx, sidePaddingPx } = useChatLayoutMode()
   const [narrowMode] = usePreference('chat.narrow_mode')
   const percent = status?.totalBytes
     ? Math.min(100, Math.floor((status.receivedBytes / status.totalBytes) * 100))
@@ -34,7 +34,7 @@ export function ClaudeCodeDownloadStatus({
     <NarrowLayout
       narrowMode={narrowMode}
       withSidePadding
-      style={{ paddingLeft: 24 + railGutterPx, paddingRight: 24 + railGutterPx }}>
+      style={{ paddingLeft: sidePaddingPx + railGutterPx, paddingRight: sidePaddingPx + railGutterPx }}>
       <div
         className="pointer-events-auto mb-2 flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-sm"
         role="status"
