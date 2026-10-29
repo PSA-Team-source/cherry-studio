@@ -30,7 +30,7 @@ import {
   createAgentRuntimeSession
 } from '@cherrystudio/agent-runtime-pi'
 import { type InputParamsMap, MessageConverterFactory, StreamAdapterFactory } from '@main/features/apiGateway/adapters'
-import { parseUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
+import { createUniqueModelId, parseUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
 
 import { loadPiApiStreamSimple } from './piSdk'
 
